@@ -1,0 +1,13 @@
+*_map.txt
+*.o
+*.bin
+*.elf
+*.map
+*.qdb
+*.qtl
+*.qpg
+*.wlf
+*.mti
+*.mpf
+work/
+*transcript*
