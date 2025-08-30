@@ -3,9 +3,11 @@ module cordic_vector_top_tb;
 
     // Parameters
     localparam int unsigned XY_WIDTH = 16;
-    localparam int unsigned ANGLE_WIDTH = 12;
-    localparam int unsigned STAGES = 8;
+    localparam int unsigned ANGLE_WIDTH = 18;
     localparam string ROUND_TYPE = "HALF_TO_EVEN";
+
+    localparam int unsigned COEFF_DEF_WIDTH = 16;
+    localparam logic [COEFF_DEF_WIDTH-1:0] COEFF_DEF = 0.6073*2**COEFF_DEF_WIDTH;
 
     //Ports
     reg clk;
@@ -23,7 +25,6 @@ module cordic_vector_top_tb;
     cordic_vector_top # (
         .XY_WIDTH   (XY_WIDTH),
         .ANGLE_WIDTH(ANGLE_WIDTH),
-        .STAGES     (STAGES),
         .ROUND_TYPE (ROUND_TYPE)
     )
     cordic_vector_top_inst (
@@ -56,17 +57,22 @@ module cordic_vector_top_tb;
         valid_i <= '0;
         repeat(10) @(posedge clk);
         reset_n <= 1'b1;
-        repeat(10) @(posedge clk);
+        repeat(10) @(posedge clk);        
 
-        for(int i = 0; i < 100; i++) begin
+        for(int i = 0; i < ANGLE_WIDTH; i++) begin
             automatic logic [ANGLE_WIDTH-1:0] rot_angle = ANGLE_WIDTH'($rtoi($atan(2**(-$itor(i)))*2**(ANGLE_WIDTH-2)));
             $display("Iteration = %0d, angle = %0f", i, rot_angle);
             // $display("%0f", $atan(2**(-$itor(i))));
-
         end
-        
 
+        $display("AAA = %0d", COEFF_DEF);
         for(int i = 0; i < 2**ANGLE_WIDTH; i++) begin
+            // x_i     <= XY_WIDTH'(2**(XY_WIDTH-3));
+            // y_i     <= XY_WIDTH'(2**(XY_WIDTH-3));
+
+            y_i     <= XY_WIDTH'('d0);
+            x_i     <= XY_WIDTH'('d100);
+
             angle_i <= i[ANGLE_WIDTH-1:0];
             valid_i <= 1'b1;
             @(posedge clk);

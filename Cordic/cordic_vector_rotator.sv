@@ -60,14 +60,14 @@ module cordic_vector_rotator #(
     always_comb begin
         quarter_next    = quarter_reg;
 
-        if(angle_reg > 0) begin
-            x_next = x_reg - $signed(y_reg >>> ITERATION);
-            y_next = y_reg + $signed(x_reg >>> ITERATION);
-            angle_next = angle_reg - rot_angle;
+        if(angle_reg[ANGLE_WIDTH-1]) begin // число отрицательное
+            x_next = x_reg + y_reg >>> ITERATION;
+            y_next = y_reg - x_reg >>> ITERATION;
+            angle_next = angle_reg + $signed(rot_angle);
         end else begin
-            x_next = x_reg + $signed(y_reg >>> ITERATION);
-            y_next = y_reg - $signed(x_reg >>> ITERATION);
-            angle_next = angle_reg + rot_angle;
+            x_next = x_reg - y_reg >>> ITERATION;
+            y_next = y_reg + x_reg >>> ITERATION;
+            angle_next = angle_reg - $signed(rot_angle);
         end
     end
 
