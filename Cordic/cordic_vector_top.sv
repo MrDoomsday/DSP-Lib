@@ -32,16 +32,17 @@ module cordic_vector_top #(
     localparam int unsigned STAGES = XY_WIDTH; // количество итераций алгоритма
 
     // generate cordic iteration
-    logic signed    [STAGES-1:0][XY_WIDTH:0]        rot_x_i, rot_x_o;
-    logic signed    [STAGES-1:0][XY_WIDTH:0]        rot_y_i, rot_y_o;
-    logic signed    [STAGES-1:0][ANGLE_WIDTH-1:0]   rot_angle_i, rot_angle_o;
-    logic           [STAGES-1:0][1:0]               rot_quarter_i, rot_quarter_o;
-    logic           [STAGES-1:0]                    rot_valid_i, rot_valid_o;
+    logic signed    [STAGES-1:0][XY_WIDTH:0]        x;
+    logic signed    [STAGES-1:0][XY_WIDTH:0]        y;
+    logic signed    [STAGES-1:0][ANGLE_WIDTH-1:0]   angle;
+    logic           [STAGES-1:0][1:0]               quarter;
+    logic           [STAGES-1:0]                    valid;
 
 
     // mult coefficient deformation
     localparam int unsigned COEFF_DEF_WIDTH = 16;
-    localparam logic [COEFF_DEF_WIDTH-1:0] COEFF_DEF = 0.6073*2**COEFF_DEF_WIDTH;
+    localparam logic [COEFF_DEF_WIDTH-1:0] COEFF_DEF = 0.6073*(2**COEFF_DEF_WIDTH);
+    localparam real PI = 3.141592653589793;
 
     logic signed    [XY_WIDTH+COEFF_DEF_WIDTH+1:0]  mult_x, mult_y; // 1 бит добавляется при расширении знака у коеффициента деформации
     logic signed    [XY_WIDTH:0]                    mult_x_round, mult_x_round_next, 
@@ -58,41 +59,37 @@ module cordic_vector_top #(
 /*******************************************            INSTANCE         ***********************************************/
 /***********************************************************************************************************************/
     generate
-        for(genvar i = 0; i < STAGES; i++) begin: cordic_iteration
+        assign valid[0]   = valid_i;
+        assign x[0]       = $signed({x_i[XY_WIDTH-1], x_i});
+        assign y[0]       = $signed({y_i[XY_WIDTH-1], y_i});
+        assign angle[0]   = $signed({2'b00, angle_i[ANGLE_WIDTH-3:0]});
+        assign quarter[0] = angle_i[ANGLE_WIDTH-1:ANGLE_WIDTH-2];
+
+        for(genvar i = 0; i < STAGES - 1; i++) begin: cordic_iteration
+            logic signed [ANGLE_WIDTH-1:0] rot_angle = $signed(ANGLE_WIDTH'($rtoi(($atan(2**(-$itor(i)))/(2*PI))*2**ANGLE_WIDTH)));
+
             cordic_vector_rotator # (
                 .XY_WIDTH       ( XY_WIDTH + 1),
                 .ANGLE_WIDTH    ( ANGLE_WIDTH ),
                 .ITERATION      ( i           )
             ) vector_rotator (
-                .clk        ( clk               ),
-                .reset_n    ( reset_n           ),
+                .clk        ( clk           ),
+                .reset_n    ( reset_n       ),
 
-                .x_i        ( rot_x_i[i]        ),
-                .y_i        ( rot_y_i[i]        ),
-                .angle_i    ( rot_angle_i[i]    ),
-                .quarter_i  ( rot_quarter_i[i]  ),
-                .valid_i    ( rot_valid_i[i]    ),
+                .rot_angle  ( rot_angle     ),
 
-                .x_o        ( rot_x_o[i]        ),
-                .y_o        ( rot_y_o[i]        ),
-                .angle_o    ( rot_angle_o[i]    ),
-                .quarter_o  ( rot_quarter_o[i]  ),
-                .valid_o    ( rot_valid_o[i]    )
-            );
-            
-            if(i == 0) begin
-                assign rot_valid_i[i]   = valid_i;
-                assign rot_x_i[i]       = $signed({x_i[XY_WIDTH-1], x_i});
-                assign rot_y_i[i]       = $signed({y_i[XY_WIDTH-1], y_i});
-                assign rot_angle_i[i]   = $signed({2'b00, angle_i[ANGLE_WIDTH-3:0]});
-                assign rot_quarter_i[i] = angle_i[ANGLE_WIDTH-1:ANGLE_WIDTH-2];
-            end else begin
-                assign rot_valid_i[i]   = rot_valid_o[i-1];
-                assign rot_x_i[i]       = rot_x_o[i-1];
-                assign rot_y_i[i]       = rot_y_o[i-1];
-                assign rot_angle_i[i]   = rot_angle_o[i-1];
-                assign rot_quarter_i[i] = rot_quarter_o[i-1];
-            end
+                .x_i        ( x[i]          ),
+                .y_i        ( y[i]          ),
+                .angle_i    ( angle[i]      ),
+                .quarter_i  ( quarter[i]    ),
+                .valid_i    ( valid[i]      ),
+
+                .x_o        ( x[i+1]        ),
+                .y_o        ( y[i+1]        ),
+                .angle_o    ( angle[i+1]    ),
+                .quarter_o  ( quarter[i+1]  ),
+                .valid_o    ( valid[i+1]    )
+            );            
         end
     endgenerate
 
@@ -104,14 +101,14 @@ module cordic_vector_top #(
         if(!reset_n) begin
             mult_valid <= 'b0;
         end else begin
-            mult_valid <= rot_valid_o[STAGES-1];
+            mult_valid <= valid[STAGES-1];
         end
     end
 
     always_ff @(posedge clk) begin
-        mult_quarter <= rot_quarter_o[STAGES-1];
-        mult_x <= $signed({1'b0, COEFF_DEF})*$signed(rot_x_o[STAGES-1]);
-        mult_y <= $signed({1'b0, COEFF_DEF})*$signed(rot_y_o[STAGES-1]);
+        mult_quarter <= quarter[STAGES-1];
+        mult_x <= $signed({1'b0, COEFF_DEF})*$signed(x[STAGES-1]);
+        mult_y <= $signed({1'b0, COEFF_DEF})*$signed(y[STAGES-1]);
     end
 
     // round

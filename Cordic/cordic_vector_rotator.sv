@@ -6,6 +6,8 @@ module cordic_vector_rotator #(
     input   logic                                   clk,
     input   logic                                   reset_n,
 
+    input   logic signed    [ANGLE_WIDTH-1:0]       rot_angle, // угол, на величину которого поворачивает этот модуль 
+
     input   logic signed    [XY_WIDTH-1:0]          x_i,
     input   logic signed    [XY_WIDTH-1:0]          y_i,
     input   logic signed    [ANGLE_WIDTH-1:0]       angle_i, // текущее значение угла (старшие два бита используются только под знак)
@@ -22,8 +24,6 @@ module cordic_vector_rotator #(
 /***********************************************************************************************************************/
 /*******************************************            DECLARATION      ***********************************************/
 /***********************************************************************************************************************/
-    localparam logic [ANGLE_WIDTH-1:0] rot_angle = ANGLE_WIDTH'($rtoi($atan(2**(-$itor(ITERATION)))*2**(ANGLE_WIDTH-2)));
-
     logic signed [XY_WIDTH-1:0]     x_reg;
     logic signed [XY_WIDTH-1:0]     y_reg;
     logic signed [ANGLE_WIDTH-1:0]  angle_reg;
@@ -60,11 +60,11 @@ module cordic_vector_rotator #(
         if(angle_reg[ANGLE_WIDTH-1]) begin // если угол отрицательный
             x_next = x_reg + (y_reg >>> ITERATION);
             y_next = y_reg - (x_reg >>> ITERATION);
-            angle_next = angle_reg + $signed(rot_angle);
+            angle_next = angle_reg + rot_angle;
         end else begin
             x_next = x_reg - (y_reg >>> ITERATION);
             y_next = y_reg + (x_reg >>> ITERATION);
-            angle_next = angle_reg - $signed(rot_angle);
+            angle_next = angle_reg - rot_angle;
         end
     end
 
