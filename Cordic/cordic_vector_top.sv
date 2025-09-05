@@ -1,4 +1,6 @@
 /*
+    Модуль основан на материалах работы: DOI: 10.1145/275107.275139
+
     Углы нарезаются на кусочки по (2*pi/2^ANGLE_WIDTH). Старшие два бита определяют квадрант
     > 00 - I   <
     > 01 - II  <
@@ -41,16 +43,16 @@ module cordic_vector_top #(
     localparam int unsigned COEFF_DEF_WIDTH = 16;
     localparam logic [COEFF_DEF_WIDTH-1:0] COEFF_DEF = 0.6073*2**COEFF_DEF_WIDTH;
 
-    logic signed    [XY_WIDTH+COEFF_DEF_WIDTH:0]    mult_x, mult_y;
-    logic signed    [XY_WIDTH-1:0]                  mult_x_round, mult_x_round_next, 
+    logic signed    [XY_WIDTH+COEFF_DEF_WIDTH+1:0]  mult_x, mult_y; // 1 бит добавляется при расширении знака у коеффициента деформации
+    logic signed    [XY_WIDTH:0]                    mult_x_round, mult_x_round_next, 
                                                     mult_y_round, mult_y_round_next;
     logic                                           mult_valid, mult_valid_round;
     logic           [1:0]                           mult_quarter, mult_quarter_round;
 
 
     // select quarter
-    logic signed    [XY_WIDTH-1:0]      q_x, q_y;
-    logic                               q_valid;
+    logic signed    [XY_WIDTH:0]                    q_x, q_y;
+    logic                                           q_valid;
     
 /***********************************************************************************************************************/
 /*******************************************            INSTANCE         ***********************************************/
@@ -108,8 +110,8 @@ module cordic_vector_top #(
 
     always_ff @(posedge clk) begin
         mult_quarter <= rot_quarter_o[STAGES-1];
-        mult_x <= $signed({1'b0, COEFF_DEF})*$signed(rot_x_o[STAGES-1][XY_WIDTH-1:0]);
-        mult_y <= $signed({1'b0, COEFF_DEF})*$signed(rot_y_o[STAGES-1][XY_WIDTH-1:0]);
+        mult_x <= $signed({1'b0, COEFF_DEF})*$signed(rot_x_o[STAGES-1]);
+        mult_y <= $signed({1'b0, COEFF_DEF})*$signed(rot_y_o[STAGES-1]);
     end
 
     // round
@@ -121,8 +123,8 @@ module cordic_vector_top #(
         end
     end
 
-    dsp_rounding #(XY_WIDTH+COEFF_DEF_WIDTH+1, XY_WIDTH, ROUND_TYPE) x_dsp_round ($signed(mult_x <<< 1), mult_x_round_next);
-    dsp_rounding #(XY_WIDTH+COEFF_DEF_WIDTH+1, XY_WIDTH, ROUND_TYPE) y_dsp_round ($signed(mult_y <<< 1), mult_y_round_next);
+    dsp_rounding #(XY_WIDTH+1+COEFF_DEF_WIDTH+1, XY_WIDTH+1, ROUND_TYPE) x_dsp_round (mult_x <<< 1, mult_x_round_next);
+    dsp_rounding #(XY_WIDTH+1+COEFF_DEF_WIDTH+1, XY_WIDTH+1, ROUND_TYPE) y_dsp_round (mult_y <<< 1, mult_y_round_next);
 
     always_ff @(posedge clk) begin
         mult_quarter_round <= mult_quarter;
@@ -147,22 +149,22 @@ module cordic_vector_top #(
                 q_y <= mult_y_round;
             end
             2'b01: begin
-                q_x <= mult_x_round;
-                q_y <= mult_y_round;
+                q_x <= -mult_y_round;
+                q_y <= mult_x_round;
             end
             2'b10: begin
-                q_x <= mult_x_round;
-                q_y <= mult_y_round;
+                q_x <= -mult_x_round;
+                q_y <= -mult_y_round;
             end
             2'b11: begin
-                q_x <= mult_x_round;
-                q_y <= mult_y_round;
+                q_x <= mult_y_round;
+                q_y <= -mult_x_round;
             end
         endcase
     end
 
-    assign x_o      = q_x;
-    assign y_o      = q_y;
+    assign x_o      = $signed(q_x[XY_WIDTH-1:0]);
+    assign y_o      = $signed(q_y[XY_WIDTH-1:0]);
     assign valid_o  = q_valid;
 
 

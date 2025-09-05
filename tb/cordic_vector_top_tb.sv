@@ -67,11 +67,11 @@ module cordic_vector_top_tb;
 
         $display("AAA = %0d", COEFF_DEF);
         for(int i = 0; i < 2**ANGLE_WIDTH; i++) begin
-            // x_i     <= XY_WIDTH'(2**(XY_WIDTH-3));
-            // y_i     <= XY_WIDTH'(2**(XY_WIDTH-3));
+            x_i     <= XY_WIDTH'(2**(XY_WIDTH-1));
+            // y_i     <= XY_WIDTH'(2**(XY_WIDTH-1));
 
+            // x_i     <= XY_WIDTH'('d100);
             y_i     <= XY_WIDTH'('d0);
-            x_i     <= XY_WIDTH'('d100);
 
             angle_i <= i[ANGLE_WIDTH-1:0];
             valid_i <= 1'b1;

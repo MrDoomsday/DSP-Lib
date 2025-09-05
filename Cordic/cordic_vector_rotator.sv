@@ -35,9 +35,6 @@ module cordic_vector_rotator #(
     logic signed [ANGLE_WIDTH-1:0]  angle_next;
     logic [1:0]                     quarter_next;
 
-    // logic signed [XY_WIDTH-1:0]     x_round;
-    // logic signed [XY_WIDTH-1:0]     y_round;
-
 /***********************************************************************************************************************/
 /*******************************************            LOGIC            ***********************************************/
 /***********************************************************************************************************************/
@@ -48,7 +45,7 @@ module cordic_vector_rotator #(
             valid_reg <= valid_i;
         end
     end
-    
+
 
     always_ff @(posedge clk) begin
         x_reg       <= x_i;
@@ -60,37 +57,16 @@ module cordic_vector_rotator #(
     always_comb begin
         quarter_next    = quarter_reg;
 
-        if(angle_reg[ANGLE_WIDTH-1]) begin // число отрицательное
-            x_next = x_reg + y_reg >>> ITERATION;
-            y_next = y_reg - x_reg >>> ITERATION;
+        if(angle_reg[ANGLE_WIDTH-1]) begin // если угол отрицательный
+            x_next = x_reg + (y_reg >>> ITERATION);
+            y_next = y_reg - (x_reg >>> ITERATION);
             angle_next = angle_reg + $signed(rot_angle);
         end else begin
-            x_next = x_reg - y_reg >>> ITERATION;
-            y_next = y_reg + x_reg >>> ITERATION;
+            x_next = x_reg - (y_reg >>> ITERATION);
+            y_next = y_reg + (x_reg >>> ITERATION);
             angle_next = angle_reg - $signed(rot_angle);
         end
     end
-
-    // rounding
-    // dsp_rounding #(XY_WIDTH+1, XY_WIDTH, ROUND_TYPE) x_dsp_round (x_next, x_round);
-    // dsp_rounding #(XY_WIDTH+1, XY_WIDTH, ROUND_TYPE) y_dsp_round (y_next, y_round);
-
-/*    
-    always_ff @(posedge clk or negedge reset_n) begin
-        if(!reset_n) begin
-            valid_o <= '0;
-        end else begin
-            valid_o <= valid_reg;
-        end
-    end
-
-    always_ff @(posedge clk) begin
-        x_o         <= x_round;
-        y_o         <= y_round;
-        angle_o     <= angle_next;
-        quarter_o   <= quarter_next;
-    end
-*/
 
     assign valid_o = valid_reg;
     assign x_o = x_next;
