@@ -10,7 +10,7 @@
 module cordic_vector_top #(
     parameter int unsigned  XY_WIDTH = 16,
     parameter int unsigned  ANGLE_WIDTH = 12, // разрядность угла
-    parameter string        ROUND_TYPE = "TRUNCATION" // тип округления чисел после блока умножения на масштабирующую константу
+    parameter string        ROUND_TYPE = "HALF_TO_EVEN" // тип округления чисел после блока умножения на масштабирующую константу
 ) (
     input   logic                               clk,
     input   logic                               reset_n,
