@@ -160,9 +160,30 @@ module cordic_vector_top #(
         endcase
     end
 
-    assign x_o      = $signed(q_x[XY_WIDTH-1:0]);
-    assign y_o      = $signed(q_y[XY_WIDTH-1:0]);
-    assign valid_o  = q_valid;
+    // result saturation
+    always_ff @(posedge clk or negedge reset_n) begin
+        if(!reset_n) begin
+            valid_o <= 'b0;
+        end else begin
+            valid_o <= q_valid;
+        end
+    end
 
+    always_ff @(posedge clk) begin
+        if(q_x >= $signed({2'b00, {(XY_WIDTH-1){1'b1}}})) begin
+            x_o <= $signed({1'b0, {(XY_WIDTH-1){1'b1}}});
+        end else if(q_x <= $signed({2'b11, {(XY_WIDTH-1){1'b0}}})) begin
+            x_o <= $signed({1'b1, {(XY_WIDTH-1){1'b0}}});            
+        end else begin
+            x_o <= $signed(q_x[XY_WIDTH-1:0]);
+        end
+        if(q_y >= $signed({2'b00, {(XY_WIDTH-1){1'b1}}})) begin
+            y_o <= $signed({1'b0, {(XY_WIDTH-1){1'b1}}});
+        end else if(q_y <= $signed({2'b11, {(XY_WIDTH-1){1'b0}}})) begin
+            y_o <= $signed({1'b1, {(XY_WIDTH-1){1'b0}}});            
+        end else begin
+            y_o <= $signed(q_y[XY_WIDTH-1:0]);
+        end
+    end
 
 endmodule
