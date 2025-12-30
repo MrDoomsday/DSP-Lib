@@ -10,7 +10,8 @@ module dsp_rounding #(
 /*
     https://en.wikipedia.org/wiki/Rounding
     ----------------------- Directed rounding to an integer ------------------------
-    TRUNCATION - for example, 23.7 gets rounded to 23, and −23.7 gets rounded to −23.
+    ROUND_DOWN (TRUNCATION, floor) - for example, 23.7 gets rounded to 23, and −23.7 gets rounded to −24.
+    ROUND_UP (ceil) - for example, 23.2 gets rounded to 24, and −23.7 gets rounded to −23. 
     ----------------------- Rounding to the nearest integer ------------------------
     HALF_UP - for example, 23.5 gets rounded to 24, and −23.5 gets rounded to −23.
     HALF_DOWN - for example, 23.5 gets rounded to 23, and −23.5 gets rounded to −24.
@@ -23,13 +24,18 @@ module dsp_rounding #(
 */
 
     generate
-        if(ROUND_TYPE == "TRUNCATION") begin: truncation
+        if(ROUND_TYPE == "ROUND_DOWN") begin: truncation
             assign out = $signed(in[IWIDTH-1:IWIDTH-OWIDTH]);
+        end else if(ROUND_TYPE == "ROUND_UP") begin: round_up
+            wire [IWIDTH-1:0] ru = in[IWIDTH-1:0] + {{(OWIDTH-1){1'b0}}, |in[IWIDTH-OWIDTH-1:0], {(IWIDTH-OWIDTH){1'b0}}};
+            assign out = $signed(ru[IWIDTH-1:IWIDTH-OWIDTH]);
         end else if(ROUND_TYPE == "HALF_UP") begin: half_up
             wire [IWIDTH-1:0] hu = in[IWIDTH-1:0] + {{(OWIDTH){1'b0}}, 1'b1, {(IWIDTH-OWIDTH-1){1'b0}}};
             assign out = $signed(hu[IWIDTH-1:IWIDTH-OWIDTH]);
         end else if(ROUND_TYPE == "HALF_DOWN") begin: half_down
-            wire [IWIDTH-1:0] hd = in[IWIDTH-1:0] + {{(OWIDTH){1'b0}}, 1'b0, {(IWIDTH-OWIDTH-1){1'b1}}};
+            wire if_neg_half = in[IWIDTH-OWIDTH-1] & |in[IWIDTH-OWIDTH-2:0];// если дробная часть отрицательного числа меньше 0.5 (по модулю)
+            wire [IWIDTH-1:0] hd = in[IWIDTH-1:0] + (in[IWIDTH-1] ? {{(OWIDTH){1'b0}}, 1'b0, {(IWIDTH-OWIDTH-1){if_neg_half}}} :
+                                                                    {{(OWIDTH){1'b0}}, 1'b0, {(IWIDTH-OWIDTH-1){1'b1}}});
             assign out = $signed(hd[IWIDTH-1:IWIDTH-OWIDTH]);
         end else if(ROUND_TYPE == "HALF_TO_ZERO") begin: half_to_zero
             wire [IWIDTH-1:0] htz = in[IWIDTH-1:0] + {{(OWIDTH){1'b0}}, in[IWIDTH-1], {(IWIDTH-OWIDTH-1){~in[IWIDTH-1]}}};
@@ -48,5 +54,5 @@ module dsp_rounding #(
             $fatal("The rounding type is specified incorrectly");
         end
     endgenerate
-    
+
 endmodule
