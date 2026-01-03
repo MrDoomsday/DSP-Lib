@@ -32,6 +32,7 @@ module dsp_rounding #(
         end else begin
             out = in[IWIDTH-1-:OWIDTH];
         end
+        return out;
     endfunction
 
     generate
